@@ -3222,6 +3222,7 @@ const docTemplate = `{
                     "type": "string",
                     "enum": [
                         "ollama",
+                        "vllm",
                         "openai"
                     ]
                 }

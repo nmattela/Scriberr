@@ -30,7 +30,7 @@ const items: Item[] = [
 		img: "scriberr-summarize transcripts.png",
 		bullets: [
 			"Write your own custom prompts for summarization",
-			"Supports both Ollama/OpenAI (needs API Key) LLM providers",
+			"Supports Ollama/vLLM/OpenAI (needs API Key) LLM providers",
 			"Save multiple summarization presets to reuse quickly",
 		],
 	},
@@ -57,7 +57,7 @@ const items: Item[] = [
 		title: "Bring your own providers",
 		desc: "Use OpenAI or local models via Ollama for summaries and chat — your keys, your choice.",
 		img: "scriberr-Ollama:openAI llm providers for chat and summarization.png",
-		bullets: ["Works with OpenAI or Ollama"],
+		bullets: ["Works with OpenAI, Ollama or vLLM"],
 	},
 	{
 		title: "Export transcripts",
@@ -72,7 +72,7 @@ const items: Item[] = [
 		title: "Chat with your transcript",
 		desc: "Ask questions about your recording, extract insights, and clarify details without scrubbing through audio.",
 		img: "scriberr-chat-with-your-recording-transcript.png",
-		bullets: ["Works with OpenAI or Ollama"],
+		bullets: ["Works with OpenAI, Ollama or vLLM"],
 	},
 	{
 		title: "API keys and REST API",

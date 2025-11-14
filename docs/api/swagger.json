@@ -3216,6 +3216,7 @@
                     "type": "string",
                     "enum": [
                         "ollama",
+                        "vllm",
                         "openai"
                     ]
                 }

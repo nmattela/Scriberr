@@ -39,7 +39,7 @@ Scriberr is a self‑hosted offline transcription app for converting audio into 
 - Speaker diarization (identify and label speakers)
 - Transcript reader with playback follow‑along and seek‑from‑text
 - Highlights and lightweight note‑taking (jump note → audio/transcript)
-- Summarize and chat over transcripts (OpenAI or local models via Ollama)
+- Summarize and chat over transcripts (OpenAI or local models via vLLM or Ollama)
 - Transcription profiles for re‑usable configurations
 - YouTube video transcription (paste a link and transcribe)
 - Quick transcribe (ephemeral) and batch upload

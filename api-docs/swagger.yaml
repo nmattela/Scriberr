@@ -169,6 +169,7 @@ definitions:
       provider:
         enum:
         - ollama
+        - vllm
         - openai
         type: string
     required:

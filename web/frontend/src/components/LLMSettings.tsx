@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { Bot, Key, Globe, CheckCircle, AlertCircle } from "lucide-react";
+import { Bot, Key, Globe, CheckCircle, AlertCircle, Link2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 interface LLMConfig {
@@ -61,6 +61,7 @@ export function LLMSettings() {
 			provider: config.provider,
 			is_active: true, // Always set to active when saving
 			...(config.provider === "ollama" && { base_url: baseUrl }),
+			...(config.provider === "vllm" && { base_URL: baseUrl, api_key: apiKey }),
 			...(config.provider === "openai" && { api_key: apiKey }),
 		};
 
@@ -79,7 +80,7 @@ export function LLMSettings() {
 				setConfig(data);
 				setMessage({ type: "success", text: "LLM configuration saved successfully!" });
 				// Clear the API key field after saving
-				if (config.provider === "openai") {
+				if (config.provider === "vllm" || config.provider === "openai") {
 					setApiKey("");
 				}
 			} else {
@@ -98,7 +99,7 @@ export function LLMSettings() {
 		if (config.provider === "ollama") {
 			return baseUrl.trim() !== "";
 		}
-		if (config.provider === "openai") {
+		if (config.provider === "vllm" || config.provider === "openai") {
 			return apiKey.trim() !== "" || config.has_api_key;
 		}
 		return false;
@@ -177,6 +178,35 @@ export function LLMSettings() {
 								</Card>
 							</label>
 
+							<label htmlFor="vllm">
+								<Card className={`cursor-pointer transition-colors ${
+									config.provider === "vllm"
+										? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" 
+										: "hover:bg-gray-50 dark:hover:bg-gray-600"
+								}`}>
+									<CardHeader className="pb-2">
+										<div className="flex items-center space-x-2">
+											<input
+												type="radio"
+												id="vllm"
+												name="provider"
+												value="vllm"
+												checked={config.provider === "vllm"}
+												onChange={(e) => setConfig({ ...config, provider: e.target.value })}
+												className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+											/>
+											<Bot className="h-5 w-5" />
+											<CardTitle className="text-base">vLLM</CardTitle>
+										</div>
+									</CardHeader>
+									<CardContent>
+										<CardDescription>
+											Local vLLM server. Requires Base URL and API key.
+										</CardDescription>
+									</CardContent>
+								</Card>
+							</label>
+
 							<label htmlFor="openai">
 								<Card className={`cursor-pointer transition-colors ${
 									config.provider === "openai" 
@@ -212,7 +242,10 @@ export function LLMSettings() {
 					<div className="space-y-4">
 						{config.provider === "ollama" && (
 							<div>
-								<Label htmlFor="baseUrl">Ollama Base URL *</Label>
+								<Label htmlFor="baseUrl">
+									<Link2 className="h-4 w-4" />
+									Ollama Base URL *
+								</Label>
 								<Input
 									id="baseUrl"
 									type="url"
@@ -225,6 +258,50 @@ export function LLMSettings() {
 									The URL where your Ollama server is running
 								</p>
 							</div>
+						)}
+
+						{config.provider === "vllm" && (
+							<>
+								<div>
+									<Label htmlFor="baseUrl">
+										<Link2 className="h-4 w-4" />
+										vLLM Base URL *
+									</Label>
+									<Input
+										id="baseUrl"
+										type="url"
+										placeholder="http://localhost:11434"
+										value={baseUrl}
+										onChange={(e) => setBaseUrl(e.target.value)}
+										className="mt-1"
+									/>
+									<p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+										The URL where your vLLM server is running
+									</p>
+								</div>
+									<div>
+									<Label htmlFor="apiKey" className="flex items-center gap-2">
+										<Key className="h-4 w-4" />
+										vLLM API Key *
+										{config.has_api_key && (
+											<span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded">
+												Already configured
+											</span>
+										)}
+									</Label>
+									<Input
+										id="apiKey"
+										type="password"
+										placeholder={config.has_api_key ? "Enter new API key to update" : "sk-..."}
+										value={apiKey}
+										onChange={(e) => setApiKey(e.target.value)}
+										className="mt-1"
+									/>
+									<p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+										Your vLLM API key. {config.has_api_key ? "Leave blank to keep current key." : ""}
+									</p>
+								</div>
+							</>
 						)}
 
 						{config.provider === "openai" && (

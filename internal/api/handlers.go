@@ -131,7 +131,7 @@ type YouTubeDownloadResponse struct {
 
 // LLMConfigRequest represents the LLM configuration request
 type LLMConfigRequest struct {
-	Provider string  `json:"provider" binding:"required,oneof=ollama openai"`
+	Provider string  `json:"provider" binding:"required,oneof=ollama vllm openai"`
 	BaseURL  *string `json:"base_url,omitempty"`
 	APIKey   *string `json:"api_key,omitempty"`
 	IsActive bool    `json:"is_active"`
@@ -714,7 +714,7 @@ func (h *Handler) GetTrackProgress(c *gin.Context) {
 
 	for _, trackFile := range job.MultiTrackFiles {
 		trackInfo := map[string]interface{}{
-			"track_name": trackFile.FileName,
+			"track_name":  trackFile.FileName,
 			"track_index": trackFile.TrackIndex,
 		}
 
@@ -751,15 +751,15 @@ func (h *Handler) GetTrackProgress(c *gin.Context) {
 	}
 
 	response := gin.H{
-		"job_id": jobID,
+		"job_id":         jobID,
 		"is_multi_track": true,
 		"overall_status": job.Status,
-		"merge_status": job.MergeStatus,
-		"tracks": trackProgress,
+		"merge_status":   job.MergeStatus,
+		"tracks":         trackProgress,
 		"progress": map[string]interface{}{
 			"completed_tracks": completedTracks,
-			"total_tracks": totalTracks,
-			"percentage": progressPercentage,
+			"total_tracks":     totalTracks,
+			"percentage":       progressPercentage,
 		},
 	}
 
@@ -1128,7 +1128,7 @@ func (h *Handler) StartTranscription(c *gin.Context) {
 	}
 
 	// Debug: log what we received
-	logger.Debug("Parsed transcription parameters", 
+	logger.Debug("Parsed transcription parameters",
 		"job_id", jobID,
 		"model_family", requestParams.ModelFamily,
 		"model", requestParams.Model,
@@ -1198,7 +1198,7 @@ func (h *Handler) StartTranscription(c *gin.Context) {
 	}
 	params["language"] = requestParams.Language
 	params["device"] = requestParams.Device
-	
+
 	filename := filepath.Base(job.AudioPath)
 	logger.JobStarted(jobID, filename, requestParams.ModelFamily, params)
 
@@ -2130,6 +2130,10 @@ func (h *Handler) SaveLLMConfig(c *gin.Context) {
 	// Validate provider-specific requirements
 	if req.Provider == "ollama" && (req.BaseURL == nil || *req.BaseURL == "") {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Base URL is required for Ollama provider"})
+		return
+	}
+	if req.Provider == "vllm" && (req.BaseURL == nil || *req.BaseURL == "" || req.APIKey == nil || *req.APIKey == "") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Base URL and API key is required for vLLM provider"})
 		return
 	}
 	if req.Provider == "openai" && (req.APIKey == nil || *req.APIKey == "") {

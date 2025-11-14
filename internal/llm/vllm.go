@@ -13,31 +13,31 @@ import (
 	"time"
 )
 
-// OpenAIService handles OpenAI API interactions
-type OpenAIService struct {
+// VllmService handles vLLM/OpenAI API interactions
+type VllmService struct {
 	apiKey  string
 	baseURL string
 	client  *http.Client
 }
 
-// NewOpenAIService creates a new OpenAI service
-func NewOpenAIService(apiKey string) *OpenAIService {
-	return &OpenAIService{
+// NewVllmService creates a new vLLM service
+func NewVllmService(baseURL string, apiKey string) *VllmService {
+	return &VllmService{
 		apiKey:  apiKey,
-		baseURL: "https://api.openai.com/v1",
+		baseURL: baseURL,
 		client: &http.Client{
 			Timeout: 300 * time.Second,
 		},
 	}
 }
 
-// ChatMessage represents a chat message for OpenAI API
+// ChatMessage represents a chat message for vLLM API
 type ChatMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
 
-// ChatRequest represents the OpenAI chat completion request
+// ChatRequest represents the vLLM chat completion request
 type ChatRequest struct {
 	Model       string        `json:"model"`
 	Messages    []ChatMessage `json:"messages"`
@@ -46,7 +46,7 @@ type ChatRequest struct {
 	MaxTokens   int           `json:"max_tokens,omitempty"`
 }
 
-// ChatResponse represents the OpenAI chat completion response
+// ChatResponse represents the vLLM chat completion response
 type ChatResponse struct {
 	ID      string `json:"id"`
 	Object  string `json:"object"`
@@ -83,7 +83,7 @@ type ChatStreamResponse struct {
 	} `json:"choices"`
 }
 
-// ModelsResponse represents the OpenAI models list response
+// ModelsResponse represents the vLLM models list response
 type ModelsResponse struct {
 	Data []struct {
 		ID      string `json:"id"`
@@ -93,8 +93,8 @@ type ModelsResponse struct {
 	} `json:"data"`
 }
 
-// GetModels retrieves available chat models from OpenAI
-func (s *OpenAIService) GetModels(ctx context.Context) ([]string, error) {
+// GetModels retrieves available chat models from vLLM
+func (s *VllmService) GetModels(ctx context.Context) ([]string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", s.baseURL+"/models", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -131,7 +131,7 @@ func (s *OpenAIService) GetModels(ctx context.Context) ([]string, error) {
 }
 
 // ChatCompletion performs a non-streaming chat completion
-func (s *OpenAIService) ChatCompletion(ctx context.Context, model string, messages []ChatMessage, temperature float64) (*ChatResponse, error) {
+func (s *VllmService) ChatCompletion(ctx context.Context, model string, messages []ChatMessage, temperature float64) (*ChatResponse, error) {
 	// Build request without temperature to use model defaults.
 	reqBody := ChatRequest{
 		Model:    model,
@@ -156,7 +156,7 @@ func (s *OpenAIService) ChatCompletion(ctx context.Context, model string, messag
 	req.Header.Set("Authorization", "Bearer "+s.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	log.Printf("[openai] chat completion request model=%s messages=%d stream=%v", model, len(messages), false)
+	log.Printf("[vllm] chat completion request model=%s messages=%d stream=%v", model, len(messages), false)
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
@@ -165,7 +165,7 @@ func (s *OpenAIService) ChatCompletion(ctx context.Context, model string, messag
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		log.Printf("[openai] chat completion error status=%d body=%s", resp.StatusCode, truncate(string(body), 500))
+		log.Printf("[vllm] chat completion error status=%d body=%s", resp.StatusCode, truncate(string(body), 500))
 		return nil, fmt.Errorf("API error: %d - %s", resp.StatusCode, string(body))
 	}
 
@@ -174,12 +174,12 @@ func (s *OpenAIService) ChatCompletion(ctx context.Context, model string, messag
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	log.Printf("[openai] chat completion ok model=%s choices=%d", model, len(chatResp.Choices))
+	log.Printf("[vllm] chat completion ok model=%s choices=%d", model, len(chatResp.Choices))
 	return &chatResp, nil
 }
 
 // ChatCompletionStream performs a streaming chat completion
-func (s *OpenAIService) ChatCompletionStream(ctx context.Context, model string, messages []ChatMessage, temperature float64) (<-chan string, <-chan error) {
+func (s *VllmService) ChatCompletionStream(ctx context.Context, model string, messages []ChatMessage, temperature float64) (<-chan string, <-chan error) {
 	contentChan := make(chan string, 100)
 	errorChan := make(chan error, 1)
 
@@ -214,7 +214,7 @@ func (s *OpenAIService) ChatCompletionStream(ctx context.Context, model string, 
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Accept", "text/event-stream")
 
-		log.Printf("[openai] chat stream request model=%s messages=%d stream=%v", model, len(messages), true)
+		log.Printf("[vllm] chat stream request model=%s messages=%d stream=%v", model, len(messages), true)
 		resp, err := s.client.Do(req)
 		if err != nil {
 			errorChan <- fmt.Errorf("failed to make request: %w", err)
@@ -224,7 +224,7 @@ func (s *OpenAIService) ChatCompletionStream(ctx context.Context, model string, 
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
-			log.Printf("[openai] chat stream error status=%d body=%s", resp.StatusCode, truncate(string(body), 500))
+			log.Printf("[vllm] chat stream error status=%d body=%s", resp.StatusCode, truncate(string(body), 500))
 			errorChan <- fmt.Errorf("API error: %d - %s", resp.StatusCode, string(body))
 			return
 		}
@@ -244,7 +244,7 @@ func (s *OpenAIService) ChatCompletionStream(ctx context.Context, model string, 
 
 			// Check for end of stream
 			if data == "[DONE]" {
-				log.Printf("[openai] chat stream done model=%s", model)
+				log.Printf("[vllm] chat stream done model=%s", model)
 				return
 			}
 
@@ -264,7 +264,7 @@ func (s *OpenAIService) ChatCompletionStream(ctx context.Context, model string, 
 				}
 				if !loggedFirst {
 					loggedFirst = true
-					log.Printf("[openai] chat stream first content model=%s", model)
+					log.Printf("[vllm] chat stream first content model=%s", model)
 				}
 			}
 		}
@@ -286,7 +286,7 @@ func truncate(s string, n int) string {
 }
 
 // ValidateAPIKey validates the provided API key by making a test request
-func (s *OpenAIService) ValidateAPIKey(ctx context.Context) error {
+func (s *VllmService) ValidateAPIKey(ctx context.Context) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", s.baseURL+"/models", nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
